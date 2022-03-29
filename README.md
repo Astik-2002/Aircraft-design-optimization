@@ -1,1 +1,2 @@
-# Aircraft-design-optimization
+# Electric-aircraft-design-optimization
+The project aims at performing sizing and aerodynamic optimization using MATLAB and python. The optimization of different parameters of an aircraft like wing loading, battery mass, structural mass, range, endurance etc. are an iterative process and hence can be difficult to do by hand. The following code builds on work by Peter  Sharpe https://github.com/peterdsharpe/AeroSandbox#:~:text=AeroSandbox%20is%20a%20Python%20package,power%20of%20modern%20automatic%20differentiation.    
