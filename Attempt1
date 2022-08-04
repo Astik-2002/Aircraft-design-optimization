@@ -1,0 +1,68 @@
+import aerosandbox as asb
+import aerosandbox.numpy as np
+import math as m
+
+opti = asb.Opti()
+
+##### Constants
+
+### Env. constants
+g = 9.81  # gravitational acceleration, m/s^2
+mu = 1.775e-5  # viscosity of air, kg/m/s
+rho = 1.23  # density of air, kg/m^3
+rho_b = 3.6e5 #specific energy of li-ion battery, j/kg
+CL_max = 1.1
+v_min = 14 
+# all weights are in N
+
+w_fus = 2.5*g     # fuselage weight
+w_payload = 2*g   # payload weight
+w_avionics = 0.75*g   # avionics weight
+w_VTOL = 3.3*g    # VTOL structure weight incl. motors and additional battery weight
+w_prop = 0.4*g    # Propulsion weight
+w_tail = 1*g  # horizontal and vertical tail
+
+eta = 0.7  # aerodynamic efficiency considering losses in all forms of energy translation
+
+T = 0.5 # thickness of wing skin in mm
+
+rho_cfrp = 2.1*1.75*T # wing skin density, kg/m^2
+rho_ribs = 0.2 # mass of ribs per meter
+rho_spar_l = 71e-3 # mass of leading spar per meter, kg/m
+rho_spar_t = 23e-3 # mass of trailing spar per meter, kg/m
+
+t_cruise = 40*60 # required cruise endurance, s
+
+AR = opti.variable(init_guess=10, log_transform=True)  # aspect ratio
+S = opti.variable(init_guess=1.04, log_transform=True)  # total wing area, m^2
+V = opti.variable(init_guess=20, log_transform=True)  # cruise speed, m/s
+MTOW = opti.variable(init_guess=150, log_transform=True)  # total aircraft weight, N
+C_L = opti.variable(init_guess=0.6, log_transform=True)  # lift coefficient
+w_b = opti.variable(init_guess=25, log_transform=True)  # battery weight, N 
+
+w_wing = rho_cfrp*S*g+(rho_ribs+rho_spar_l+rho_spar_t)*(S*AR)**1/2*g
+
+opti.subject_to(MTOW >= w_wing + w_b + w_fus + w_payload + w_avionics + w_VTOL + w_prop + w_tail)
+opti.subject_to(MTOW <= 0.5*rho*V**2*S*C_L)
+opti.subject_to(MTOW <= 0.5*rho*v_min**2*S*CL_max)
+opti.subject_to(C_L <= CL_max)
+opti.subject_to(V >= 1.2*v_min)
+
+CD0 = 0.04                                   # better CD0 estimation needs to be done
+e = 1.78*(1 - 0.045*AR**0.68) - 0.64
+k = 1/(m.pi*e*AR)
+C_d = CD0 + k*C_L**2
+E = eta*0.5*rho*V**3*S*C_d*t_cruise
+
+opti.subject_to(w_b >= E/rho_b*g)
+opti.minimize(w_b)
+sol = opti.solve(max_iter=100)
+for value in [
+    "V",
+    "MTOW",
+    "C_L",
+    "w_b",
+    "AR",
+    "S",
+]:
+    print(f"{value:10} = {sol.value(eval(value)):.6}")
